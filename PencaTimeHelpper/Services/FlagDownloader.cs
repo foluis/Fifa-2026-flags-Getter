@@ -10,6 +10,13 @@ internal sealed class FlagDownloader
     // Wikimedia standard thumbnail sizes (non-standard sizes return HTTP 429)
     static readonly int[] SuggestedWidths = [60, 120, 250, 330, 500, 960, 1280];
 
+    enum DownloadFormatChoice
+    {
+        Svg,
+        Png,
+        Back
+    }
+
     readonly HttpClient httpClient;
     readonly string outputDirectory;
 
@@ -35,10 +42,16 @@ internal sealed class FlagDownloader
 
         Directory.CreateDirectory(outputDirectory);
 
-        // Ask user: SVG or PNG?
-        var useSvg = PromptForFormat();
+        // Ask user: SVG, PNG, or back to main menu
+        var formatChoice = PromptForFormat();
 
-        if (useSvg)
+        if (formatChoice == DownloadFormatChoice.Back)
+        {
+            Console.WriteLine("Returning to main menu...");
+            return;
+        }
+
+        if (formatChoice == DownloadFormatChoice.Svg)
         {
             await DownloadSvgFlagsAsync(teams);
             return;
@@ -127,15 +140,32 @@ internal sealed class FlagDownloader
         Console.WriteLine($"  Saved to: {Path.GetFullPath(outputDirectory)}");
     }
 
-    static bool PromptForFormat()
+    static DownloadFormatChoice PromptForFormat()
     {
-        Console.WriteLine("Download format:");
-        Console.WriteLine("  1. SVG (vector, fastest — no rate limiting)");
-        Console.WriteLine("  2. PNG (raster, choose size)");
-        Console.Write("\nOption: ");
+        while (true)
+        {
+            Console.WriteLine("Download format:");
+            Console.WriteLine("  1. SVG (vector, fastest — no rate limiting)");
+            Console.WriteLine("  2. PNG (raster, choose size)");
+            Console.WriteLine("  3. Back to main menu");
+            Console.Write("\nOption: ");
 
-        var input = Console.ReadLine()?.Trim();
-        return input != "2";
+            var input = Console.ReadLine()?.Trim();
+            Console.Clear();
+
+            switch (input)
+            {
+                case "1":
+                    return DownloadFormatChoice.Svg;
+                case "2":
+                    return DownloadFormatChoice.Png;
+                case "3":
+                    return DownloadFormatChoice.Back;
+                default:
+                    Console.WriteLine("Invalid option. Please enter 1, 2, or 3.\n");
+                    break;
+            }
+        }
     }
 
     static bool PromptForSizeMode()
@@ -146,6 +176,7 @@ internal sealed class FlagDownloader
         Console.Write("\nOption: ");
 
         var input = Console.ReadLine()?.Trim();
+        Console.Clear();
         return input != "2";
     }
 
@@ -160,6 +191,7 @@ internal sealed class FlagDownloader
 
         Console.Write($"\nEnter number (1-{SuggestedWidths.Length}): ");
         var input = Console.ReadLine()?.Trim();
+        Console.Clear();
 
         if (int.TryParse(input, out var choice) && choice >= 1 && choice <= SuggestedWidths.Length)
             return SuggestedWidths[choice - 1];

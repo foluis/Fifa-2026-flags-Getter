@@ -24,7 +24,7 @@ internal class Program
             Console.Write("\nOption: ");
 
             var choice = Console.ReadLine()?.Trim();
-            Console.WriteLine();
+            Console.Clear();
 
             switch (choice)
             {
