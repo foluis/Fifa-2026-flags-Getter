@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace FromGoogleDefaultDashBoard.Services;
+namespace PencaTimeHelpper.Services;
 
 /// <summary>
 /// Downloads team flag images from Wikimedia at a user-specified width.

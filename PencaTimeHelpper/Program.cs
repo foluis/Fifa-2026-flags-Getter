@@ -1,6 +1,6 @@
-﻿using FromGoogleDefaultDashBoard.Services;
+﻿using PencaTimeHelpper.Services;
 
-namespace FromGoogleDefaultDashBoard;
+namespace PencaTimeHelpper;
 
 internal class Program
 {

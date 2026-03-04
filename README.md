@@ -30,7 +30,7 @@ cd Fifa-2026-flags-Getter
 dotnet build
 
 # Run the application
-dotnet run --project FromGoogleDefaultDashBoard/FromGoogleDefaultDashBoard.csproj
+dotnet run --project PencaTimeHelpper/PencaTimeHelpper.csproj
 ```
 
 ## Usage
@@ -56,7 +56,7 @@ Fetches the Wikipedia page and reports whether the expected HTML structure is st
 2. If you chose **PNG**, select the download size:
    - *Original size* – uses the pre-cached thumbnail URL from Wikipedia.
    - *Custom size* – pick from standard Wikimedia widths (60, 120, 250, 330, 500, 960, or 1280 px). A preview of the first flag is shown before the full download begins.
-3. Flags are saved to a `flags/` folder inside the project directory (`FromGoogleDefaultDashBoard/flags/`), named after each team (e.g. `Argentina.svg`, `Brazil.png`).
+3. Flags are saved to a `flags/` folder inside the project directory (`PencaTimeHelpper/flags/`), named after each team (e.g. `Argentina.svg`, `Brazil.png`).
 
 > **Note:** Wikimedia rate-limits all requests per-IP (~5 burst, then throttled). Both SVG and PNG downloads take approximately 2 minutes for all 42 teams. The retry logic handles this automatically.
 
@@ -68,14 +68,14 @@ Closes the application.
 
 ```
 Fifa-2026-flags-Getter/
-├── FromGoogleDefaultDashBoard/
+├── PencaTimeHelpper/
 │   ├── Program.cs                      # Entry point & interactive menu
 │   ├── Services/
 │   │   ├── WikipediaParser.cs          # Scrapes Wikipedia, extracts team names & flag URLs
 │   │   └── FlagDownloader.cs           # Downloads flag images with retry logic
 │   ├── flags/                          # Downloaded flag images (created at runtime)
-│   └── FromGoogleDefaultDashBoard.csproj
-├── Fifa-2026-flags-Getter.slnx         # Solution file
+│   └── PencaTimeHelpper.csproj
+├── PencaTimeHelpper.slnx               # Solution file
 ├── .gitattributes
 ├── .gitignore
 ├── LICENSE.txt                         # Apache 2.0

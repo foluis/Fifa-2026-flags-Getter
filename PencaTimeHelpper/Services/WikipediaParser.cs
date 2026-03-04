@@ -1,7 +1,7 @@
 using HtmlAgilityPack;
 using System.Text.RegularExpressions;
 
-namespace FromGoogleDefaultDashBoard.Services;
+namespace PencaTimeHelpper.Services;
 
 /// <summary>
 /// Parses the 2026 FIFA World Cup Wikipedia page to extract team names and flag image URLs.
