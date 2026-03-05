@@ -34,3 +34,6 @@
   - dotnet build
   - dotnet test
 - If you add new UI, include a quick manual test checklist.
+
+## Team Template Guidelines
+- For Team Template.csv generation, flag image discovery must scan only files directly in the flags folder and must not include subfolders.
