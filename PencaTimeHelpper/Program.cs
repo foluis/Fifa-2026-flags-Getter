@@ -30,9 +30,15 @@ internal class Program
             Console.WriteLine("  2. Download team flags");
             Console.WriteLine("  3. Generate PencaTime test CSV files");
             Console.WriteLine("  4. Exit");
-            Console.Write("\nOption: ");
 
-            var choice = Console.ReadLine()?.Trim();
+            if (!TryReadInput("\nOption: ", out var choice))
+            {
+                Console.Clear();
+                Console.WriteLine("Goodbye!");
+                return;
+            }
+
+            choice = choice.Trim();
             Console.Clear();
 
             switch (choice)
@@ -106,9 +112,15 @@ internal class Program
             Console.WriteLine("  4. Groups Template.csv");
             Console.WriteLine("  5. Back to main menu");
             Console.WriteLine("  6. Exit");
-            Console.Write("\nOption: ");
 
-            var choice = Console.ReadLine()?.Trim();
+            if (!TryReadInput("\nOption: ", out var choice))
+            {
+                Console.Clear();
+                Console.WriteLine("Returning to main menu...");
+                return false;
+            }
+
+            choice = choice.Trim();
             Console.Clear();
 
             switch (choice)
@@ -148,8 +160,17 @@ internal class Program
 
     static async Task GenerateStageTemplateCsvAsync(string templateDir)
     {
-        var baseDate = PromptForBaseDate();
-        var firstStageDurationDays = PromptForFirstStageDurationDays();
+        if (!TryPromptForBaseDate(out var baseDate))
+        {
+            Console.WriteLine("Returning to previous menu...");
+            return;
+        }
+
+        if (!TryPromptForFirstStageDurationDays(out var firstStageDurationDays))
+        {
+            Console.WriteLine("Returning to previous menu...");
+            return;
+        }
 
         Directory.CreateDirectory(templateDir);
 
@@ -224,8 +245,17 @@ internal class Program
 
     static async Task GenerateGroupsTemplateCsvAsync(string templateDir)
     {
-        var (isNumeric, initialValue) = PromptForInitialGroup();
-        var groupsCount = PromptForGroupsCount();
+        if (!TryPromptForInitialGroup(out var isNumeric, out var initialValue))
+        {
+            Console.WriteLine("Returning to previous menu...");
+            return;
+        }
+
+        if (!TryPromptForGroupsCount(out var groupsCount))
+        {
+            Console.WriteLine("Returning to previous menu...");
+            return;
+        }
 
         Directory.CreateDirectory(templateDir);
 
@@ -254,9 +284,15 @@ internal class Program
             Console.WriteLine("Match Template source:");
             Console.WriteLine("  1. Random");
             Console.WriteLine("  2. From Web site");
-            Console.Write("\nOption: ");
 
-            var option = Console.ReadLine()?.Trim();
+            if (!TryReadInput("\nOption: ", out var option))
+            {
+                Console.Clear();
+                Console.WriteLine("Returning to previous menu...");
+                return;
+            }
+
+            option = option.Trim();
             Console.Clear();
 
             switch (option)
@@ -323,7 +359,18 @@ internal class Program
         }
 
         var maxMatches = uniqueTeams.Count / 2;
-        var matchesCount = PromptForMatchesCount(maxMatches);
+        if (!TryPromptForMatchesCount(maxMatches, out var matchesCount))
+        {
+            Console.WriteLine("Returning to previous menu...");
+            return;
+        }
+
+        if (!TryPromptForFirstMatchDate(groupsStartDate, groupsEndDate, out var firstMatchDate))
+        {
+            Console.WriteLine("Returning to previous menu...");
+            return;
+        }
+
         var matchTimes = await LoadMatchTimesAsync(matchTimesConfigPath);
 
         if (matchTimes.Count == 0)
@@ -334,16 +381,20 @@ internal class Program
 
         var shuffledTeams = uniqueTeams.OrderBy(_ => Random.Shared.Next()).ToList();
         var lines = new List<string> { "HomeTeam,AwayTeam,Date,Time,Stage,Group" };
+        var scheduledDate = firstMatchDate;
 
         for (var i = 0; i < matchesCount; i++)
         {
             var homeTeam = shuffledTeams[i * 2];
             var awayTeam = shuffledTeams[i * 2 + 1];
             var group = groups[Random.Shared.Next(groups.Count)];
-            var date = GetRandomDate(groupsStartDate, groupsEndDate);
             var time = matchTimes[Random.Shared.Next(matchTimes.Count)];
 
-            lines.Add($"{homeTeam},{awayTeam},{date:yyyy-MM-dd},{time},Groups Phase,{group}");
+            lines.Add($"{homeTeam},{awayTeam},{scheduledDate:yyyy-MM-dd},{time},Groups Phase,{group}");
+
+            scheduledDate = scheduledDate.AddDays(1);
+            if (scheduledDate > groupsEndDate)
+                scheduledDate = firstMatchDate;
         }
 
         var outputPath = Path.Combine(templateDir, "Match Template.csv");
@@ -386,24 +437,55 @@ internal class Program
             .Where(line => !string.IsNullOrWhiteSpace(line))];
     }
 
-    static int PromptForMatchesCount(int maxMatches)
+    static bool TryPromptForMatchesCount(int maxMatches, out int matchesCount)
     {
+        matchesCount = 0;
+
         while (true)
         {
-            Console.Write($"How many matches should be created? (1-{maxMatches}): ");
-            var input = Console.ReadLine()?.Trim();
+            if (!TryReadInput($"How many matches should be created? (1-{maxMatches}): ", out var input))
+                return false;
 
-            if (int.TryParse(input, out var matchesCount) && matchesCount >= 1 && matchesCount <= maxMatches)
-                return matchesCount;
+            input = input.Trim();
+
+            if (int.TryParse(input, out var parsedMatchesCount) && parsedMatchesCount >= 1 && parsedMatchesCount <= maxMatches)
+            {
+                matchesCount = parsedMatchesCount;
+                return true;
+            }
 
             Console.WriteLine($"Invalid value. Enter an integer between 1 and {maxMatches}.");
         }
     }
 
-    static DateOnly GetRandomDate(DateOnly startDate, DateOnly endDate)
+    static bool TryPromptForFirstMatchDate(DateOnly groupsStartDate, DateOnly groupsEndDate, out DateOnly firstMatchDate)
     {
-        var range = endDate.DayNumber - startDate.DayNumber;
-        return startDate.AddDays(Random.Shared.Next(range + 1));
+        firstMatchDate = default;
+
+        while (true)
+        {
+            if (!TryReadInput(
+                    $"Enter first match date (yyyy-MM-dd) between {groupsStartDate:yyyy-MM-dd} and {groupsEndDate:yyyy-MM-dd}: ", out var input))
+                return false;
+
+            input = input.Trim();
+
+            if (!DateOnly.TryParseExact(input, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None,
+                    out var parsedFirstMatchDate))
+            {
+                Console.WriteLine("Invalid date format. Please use yyyy-MM-dd.");
+                continue;
+            }
+
+            if (parsedFirstMatchDate < groupsStartDate || parsedFirstMatchDate > groupsEndDate)
+            {
+                Console.WriteLine($"Invalid date. Valid range is {groupsStartDate:yyyy-MM-dd} to {groupsEndDate:yyyy-MM-dd}.");
+                continue;
+            }
+
+            firstMatchDate = parsedFirstMatchDate;
+            return true;
+        }
     }
 
     static async Task<List<string>> LoadMatchTimesAsync(string configPath)
@@ -418,35 +500,53 @@ internal class Program
                 DateTimeStyles.None, out _))];
     }
 
-    static (bool isNumeric, int initialValue) PromptForInitialGroup()
+    static bool TryPromptForInitialGroup(out bool isNumeric, out int initialValue)
     {
+        isNumeric = false;
+        initialValue = 0;
+
         while (true)
         {
-            Console.Write("Enter initial group (single letter or integer): ");
-            var input = Console.ReadLine()?.Trim();
+            if (!TryReadInput("Enter initial group (single letter or integer): ", out var input))
+                return false;
+
+            input = input.Trim();
 
             if (int.TryParse(input, out var initialNumber) && initialNumber >= 1)
-                return (true, initialNumber);
+            {
+                isNumeric = true;
+                initialValue = initialNumber;
+                return true;
+            }
 
             if (!string.IsNullOrWhiteSpace(input) && input.Length == 1 && char.IsLetter(input[0]))
             {
                 var initialLetterIndex = char.ToUpperInvariant(input[0]) - 'A' + 1;
-                return (false, initialLetterIndex);
+                isNumeric = false;
+                initialValue = initialLetterIndex;
+                return true;
             }
 
             Console.WriteLine("Invalid input. Enter a single letter (A-Z) or an integer greater than or equal to 1.");
         }
     }
 
-    static int PromptForGroupsCount()
+    static bool TryPromptForGroupsCount(out int groupsCount)
     {
+        groupsCount = 0;
+
         while (true)
         {
-            Console.Write("Enter how many groups to create (> 0): ");
-            var input = Console.ReadLine()?.Trim();
+            if (!TryReadInput("Enter how many groups to create (> 0): ", out var input))
+                return false;
 
-            if (int.TryParse(input, out var groupsCount) && groupsCount > 0)
-                return groupsCount;
+            input = input.Trim();
+
+            if (int.TryParse(input, out var parsedGroupsCount) && parsedGroupsCount > 0)
+            {
+                groupsCount = parsedGroupsCount;
+                return true;
+            }
 
             Console.WriteLine("Invalid value. Please enter an integer greater than 0.");
         }
@@ -467,34 +567,88 @@ internal class Program
         return label;
     }
 
-    static int PromptForFirstStageDurationDays()
+    static bool TryPromptForFirstStageDurationDays(out int days)
     {
+        days = 0;
+
         while (true)
         {
-            Console.Write("Enter first stage duration in days (> 0): ");
-            var input = Console.ReadLine()?.Trim();
+            if (!TryReadInput("Enter first stage duration in days (> 0): ", out var input))
+                return false;
 
-            if (int.TryParse(input, out var days) && days > 0)
-                return days;
+            input = input.Trim();
+
+            if (int.TryParse(input, out var parsedDays) && parsedDays > 0)
+            {
+                days = parsedDays;
+                return true;
+            }
 
             Console.WriteLine("Invalid value. Please enter an integer greater than 0.");
         }
     }
 
-    static DateOnly PromptForBaseDate()
+    static bool TryPromptForBaseDate(out DateOnly baseDate)
     {
+        baseDate = default;
+
         while (true)
         {
-            Console.Write("Enter base date (yyyy-MM-dd): ");
-            var input = Console.ReadLine()?.Trim();
+            if (!TryReadInput("Enter base date (yyyy-MM-dd): ", out var input))
+                return false;
+
+            input = input.Trim();
 
             if (DateOnly.TryParseExact(input, "yyyy-MM-dd", CultureInfo.InvariantCulture,
-                    DateTimeStyles.None, out var baseDate))
+                    DateTimeStyles.None, out var parsedBaseDate))
             {
-                return baseDate;
+                baseDate = parsedBaseDate;
+                return true;
             }
 
             Console.WriteLine("Invalid date format. Please use yyyy-MM-dd.");
+        }
+    }
+
+    static bool TryReadInput(string prompt, out string value)
+    {
+        value = string.Empty;
+        Console.Write(prompt);
+
+        var buffer = new List<char>();
+
+        while (true)
+        {
+            var key = Console.ReadKey(intercept: true);
+
+            if (key.Key == ConsoleKey.Escape)
+            {
+                Console.WriteLine();
+                return false;
+            }
+
+            if (key.Key == ConsoleKey.Enter)
+            {
+                Console.WriteLine();
+                value = new string(buffer.ToArray());
+                return true;
+            }
+
+            if (key.Key == ConsoleKey.Backspace)
+            {
+                if (buffer.Count == 0)
+                    continue;
+
+                buffer.RemoveAt(buffer.Count - 1);
+                Console.Write("\b \b");
+                continue;
+            }
+
+            if (char.IsControl(key.KeyChar))
+                continue;
+
+            buffer.Add(key.KeyChar);
+            Console.Write(key.KeyChar);
         }
     }
 }
