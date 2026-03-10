@@ -166,7 +166,7 @@ internal class Program
             return;
         }
 
-        if (!TryPromptForFirstStageDurationDays(out var firstStageDurationDays))
+        if (!TryPromptForFirstStageDurationDays(baseDate, out var firstStageDurationDays))
         {
             Console.WriteLine("Returning to previous menu...");
             return;
@@ -190,7 +190,7 @@ internal class Program
         var currentStartDate = baseDate;
         for (var i = 0; i < stageNames.Length; i++)
         {
-            var durationDays = i == 0 ? firstStageDurationDays : 1;
+            var durationDays = i == 0 ? firstStageDurationDays - 1 : 1;
             var currentEndDate = currentStartDate.AddDays(durationDays);
             lines.Add($"{stageNames[i]},{currentStartDate:yyyy-MM-dd},{currentEndDate:yyyy-MM-dd}");
             currentStartDate = currentEndDate.AddDays(1);
@@ -567,13 +567,13 @@ internal class Program
         return label;
     }
 
-    static bool TryPromptForFirstStageDurationDays(out int days)
+    static bool TryPromptForFirstStageDurationDays(DateOnly baseDate, out int days)
     {
         days = 0;
 
         while (true)
         {
-            if (!TryReadInput("Enter first stage duration in days (> 0): ", out var input))
+            if (!TryReadInput($"Enter first stage duration in days (> 0) [starting from: {baseDate:yyyy-MM-dd}]: ", out var input))
                 return false;
 
             input = input.Trim();
@@ -594,7 +594,7 @@ internal class Program
 
         while (true)
         {
-            if (!TryReadInput("Enter base date (yyyy-MM-dd): ", out var input))
+            if (!TryReadInput("Enter first stage start date (yyyy-MM-dd): ", out var input))
                 return false;
 
             input = input.Trim();
